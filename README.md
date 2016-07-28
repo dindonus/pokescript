@@ -7,7 +7,7 @@ If mplayer is install, then pokesound.mp3 will be play each time a new pokemon a
 ##Usage
 Run 
 ```
-php pokescript.php
+php pokescript.php place=paris latitude=48.0000 longitude=2.0000
 ```
 to print the list of pokemons near to you. 
 
@@ -19,7 +19,9 @@ Sample output:
 29m       | Pidgey     | old       | 180s   |
 ```
 
+This will also generate stats files, so you can easily scan for a long time and see what are communs and rares pokemons in your area.
+
 Use watch command to automaticly refresh the scan:
 ```
-watch -n 60 php pokescript.php
+watch -n 60  php pokescript.php place=paris latitude=48.0000 longitude=2.0000
 ```
