@@ -1,13 +1,13 @@
 <?php
 
 /* Usage:
-php pokescript.php place=paris latitude=48.0000 longitude=2.0000
-php pokescript.php place=marseille latitude=43.0000 longitude=5.0000
+php pokescript.php place=sartrouville latitude=48.9414 longitude=2.1630
+php pokescript.php place=marseille latitude=43.3003 longitude=5.4264
 */
 
-define('MAXIMUM_RANGE', 500);
-define('MIDDLE_RANGE', 150);
-define('CLOSE_RANGE', 30);
+define('MAXIMUM_RANGE', 1000);
+define('MIDDLE_RANGE', 350);
+define('CLOSE_RANGE', 40);
 
 pokeScan(getArg('place'), getArg('latitude'), getArg('longitude'));
 
@@ -38,7 +38,7 @@ function fetchList($latitude, $longitude) {
 		$longitudeDiff = $pokemon['longitude'] - $longitude;
 		
 		$distance = sqrt(pow($latitudeDiff, 2) + pow($longitudeDiff, 2));
-		$distance = round($distance * 20000);
+		$distance = round($distance * 60000);
 		
 		$list[ $distance ] = $pokemon;
 		
@@ -62,20 +62,28 @@ function handleList($place, $list) {
 			
 			$status = getStatus($place, $pokemon);
 			$time = getRemaining($pokemon['expiration_time']);
-			$rarity = getRariry($name);
+			$rarity = getRariry($place, $name);
 			
 			if ($distance < MIDDLE_RANGE) {
 				
 				echo str_pad($distance.'m', 10);
 				echo str_pad($name, 16);
 				echo str_pad($rarity, 12);
-				echo str_pad($status, 8);
-				echo str_pad($time, 10);
+				echo str_pad($time, 12);
+				echo str_pad(getUid($pokemon), 16);
 				echo "\n";
 				
-				if ($sounded === false and $status === 'new' and $rarity !== '-') {
+				if ($sounded === false and $status === 'new' and $rarity > 50) {
 					
 					exec('mplayer pokesound.mp3 2> /dev/null');
+					
+					$image = 'http://images.pocketgamer.co.uk/images/featimgs/pokemon-go-dex-'.strtolower($name).'.jpg';
+					$image = file_get_contents($image);
+					
+					file_put_contents('/tmp/pokemon', $image);
+					
+					exec('eog /tmp/pokemon 2> /dev/null');
+					
 					$sounded = true;
 					
 				}
@@ -138,8 +146,8 @@ function getStatus($place, $pokemon) {
 	$line = date('Y-m-d H:i').';';
 	$line .= $uid.';';
 	$line .= getPokeName($pokemon['pokemonId']).';';
-	$line .= round($pokemon['longitude'], 4).';';
-	$line .= round($pokemon['latitude'], 4).';';
+	$line .= round($pokemon['longitude'], 5).';';
+	$line .= round($pokemon['latitude'], 5).';';
 	$line .= "\n";
 	
 	file_put_contents($place.'.log', $line, FILE_APPEND);
@@ -187,6 +195,8 @@ function savePokestats($place, $pokemon, $distance) {
 
 function generateStats($place) {
 	
+	sleep(1);
+	
 	$data = file_get_contents($place.'.json');
 	$data = json_decode($data, true);
 	
@@ -220,23 +230,20 @@ function getUid($pokemon) {
 	
 }
 
-function getRariry($name) {
+function getRariry($place, $name) {
 	
-	$commun = [
-		'Rattata',
-		'Pidgey',
-		'Pidgeotto',
-		'Spearow',
-		'Zubat',
-		'Fearow',
-		'Golbat',
-	];
+	$data = file_get_contents($place.'.json');
+	$data = json_decode($data, true);
 	
-	if (in_array($name, $commun) === true) {
-		return '-';
+	if ($data === null or $data['MAXIMUM_RANGE']['Total'] < 100) {
+		return '?';
 	}
 	
-	return 'rare!';
+	if (isset($data['MAXIMUM_RANGE'][ $name ]) === false) {
+		$data['MAXIMUM_RANGE'][ $name ] = 1;
+	}
+	
+	return round($data['MAXIMUM_RANGE']['Total'] / $data['MAXIMUM_RANGE'][ $name ]);
 	
 }
 
